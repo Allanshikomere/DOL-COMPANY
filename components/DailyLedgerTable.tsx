@@ -11,7 +11,12 @@ import {
   Edit3,
   Search,
   Info,
-  Smartphone
+  Smartphone,
+  Lock,
+  Unlock,
+  Coins,
+  X,
+  Check
 } from 'lucide-react';
 import { MonthData, PhoneTypeConfig, CalculatedDay, MonthSummary } from '../lib/types';
 import { formatKES, formatNumber } from '../lib/engine';
@@ -53,6 +58,48 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
   const [compactMode, setCompactMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'traded' | 'samsung' | 'unreconciled'>('all');
+
+  // Point 9: Special lock for reconciled trading days
+  const [unlockedReconciledDays, setUnlockedReconciledDays] = useState<Set<string>>(new Set());
+  const [reconcileLockNotice, setReconcileLockNotice] = useState<string | null>(null);
+
+  // Point 5: Capital In / Out (Column C / AH12) modal state
+  const [showCapitalModal, setShowCapitalModal] = useState<boolean>(false);
+  const [capitalDate, setCapitalDate] = useState<string>(selectedDate);
+  const [capitalAmount, setCapitalAmount] = useState<number>(10000);
+  const [capitalAction, setCapitalAction] = useState<'add' | 'reduce'>('add');
+
+  const customPhoneTypes = useMemo(() => {
+    return phoneTypes.filter((p) => !['type-a', 'type-b', 'type-c'].includes(p.id));
+  }, [phoneTypes]);
+
+  const toggleReconciledLock = (dateStr: string) => {
+    if (isLocked && onOpenUnlock) {
+      onOpenUnlock();
+      return;
+    }
+    setUnlockedReconciledDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) {
+        next.delete(dateStr);
+        setReconcileLockNotice(`Locked ${dateStr} (Reconciled Protection Active)`);
+      } else {
+        next.add(dateStr);
+        setReconcileLockNotice(`Unlocked ${dateStr} for error correction.`);
+      }
+      setTimeout(() => setReconcileLockNotice(null), 3000);
+      return next;
+    });
+  };
+
+  const toggleUnlockReconciledDay = toggleReconciledLock;
+
+  const handleApplyCapitalAdjust = (e: React.FormEvent) => {
+    e.preventDefault();
+    const signed = capitalAction === 'add' ? Math.abs(capitalAmount) : -Math.abs(capitalAmount);
+    onUpdateRecord(capitalDate, 'cashAdded', signed);
+    setShowCapitalModal(false);
+  };
 
   // Filter rows based on search & filter tabs
   const filteredDays = useMemo(() => {
@@ -191,12 +238,15 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
             >
               Traded Only
             </button>
-            <button
-              className={`period-pill-btn ${filterType === 'samsung' ? 'active' : ''}`}
-              onClick={() => setFilterType('samsung')}
-            >
-              Samsung Quick ({calculatedDays.filter((d) => (d.samsungCashOut || 0) > 0 || (d.samsungCashIn || 0) > 0).length})
-            </button>
+            {/* Point 8: Samsung tracker is scoped specifically to September */}
+            {month.id === '2026-09' && (
+              <button
+                className={`period-pill-btn ${filterType === 'samsung' ? 'active' : ''}`}
+                onClick={() => setFilterType('samsung')}
+              >
+                Samsung Quick ({calculatedDays.filter((d) => (d.samsungCashOut || 0) > 0 || (d.samsungCashIn || 0) > 0).length})
+              </button>
+            )}
             <button
               className={`period-pill-btn ${filterType === 'unreconciled' ? 'active' : ''}`}
               onClick={() => setFilterType('unreconciled')}
@@ -222,7 +272,31 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
             Check: reconciliation ties [{summary.reconciliationTiesCheck !== false ? 'OK' : 'MISMATCH'}]
           </span>
 
-          {onOpenSamsung && (
+          {/* Point 5: Add or Reduce Capital (Column C / AH12) */}
+          <button
+            className="btn-secondary"
+            style={{
+              borderColor: 'var(--odoo-teal)',
+              color: 'var(--odoo-teal)',
+              height: 32,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: 'rgba(1, 126, 132, 0.08)',
+            }}
+            onClick={() => {
+              setCapitalDate(selectedDate);
+              setShowCapitalModal(true);
+            }}
+            title="Add or Reduce Float Capital (Column C in ledger / AH12 in spreadsheet)"
+          >
+            <Coins size={13} /> Capital (+ / -)
+          </button>
+
+          {/* Point 8: Samsung Buffer button strictly for September */}
+          {month.id === '2026-09' && onOpenSamsung && (
             <button
               className="btn-secondary"
               style={{
@@ -237,7 +311,7 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                 background: 'rgba(56, 189, 248, 0.08)',
               }}
               onClick={onOpenSamsung}
-              title="Open Samsung Sales Tracker & Quick Entry Buffer"
+              title="Open Samsung Sales Tracker & Quick Entry Buffer (September Only)"
             >
               <Smartphone size={13} /> Samsung Buffer ({summary.totalSamsungOut ? formatNumber(summary.totalSamsungOut) : '47k'}/{summary.totalSamsungIn ? formatNumber(summary.totalSamsungIn) : '39.1k'})
             </button>
@@ -338,6 +412,18 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                 C BACK POP 20 <span style={{ opacity: 0.6 }}>(I)</span>
               </th>
 
+              {/* Point 1: Dynamic columns for custom phone models (Tecno 64GB, Itel 128GB, Itel 64GB, Infinix 128GB, etc.) */}
+              {customPhoneTypes.map((cp) => (
+                <React.Fragment key={cp.id}>
+                  <th title={`${cp.name} (${cp.model}) dispatched`}>
+                    {cp.name.toUpperCase()} OUT
+                  </th>
+                  <th title={`${cp.name} (${cp.model}) reconciled`}>
+                    {cp.name.toUpperCase()} BACK
+                  </th>
+                </React.Fragment>
+              ))}
+
               <th title="Cash given out to finance phones">
                 CASH GIVEN <span style={{ opacity: 0.6 }}>(N)</span>
               </th>
@@ -386,6 +472,15 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                 (day.samsungCashOut || 0) > 0 ||
                 (day.samsungCashIn || 0) > 0;
 
+              // Point 9: Safety lock for reconciled days
+              const isDayLocked = day.positionStatus === 'All reconciled' && !unlockedReconciledDays.has(day.date);
+              const isCellDisabled = isLocked || isDayLocked;
+              const cellTitle = isDayLocked
+                ? 'Day is reconciled & safety-locked against accidental edits. Click the lock icon in the Position column to unlock.'
+                : isLocked
+                ? 'Canvas Locked - click to enter PIN'
+                : undefined;
+
               return (
                 <tr
                   key={day.date}
@@ -407,11 +502,14 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                         style={{ padding: 2 }}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (isDayLocked) {
+                            toggleUnlockReconciledDay(day.date);
+                          }
                           onOpenNewEntry(day.date);
                         }}
-                        title="Edit this day"
+                        title={isDayLocked ? 'Reconciled Day (Click to unlock)' : 'Edit this day'}
                       >
-                        <Edit3 size={11} />
+                        {isDayLocked ? <Lock size={11} style={{ color: '#f59e0b' }} /> : <Edit3 size={11} />}
                       </button>
                     </div>
                   </td>
@@ -421,17 +519,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input editable-cell-input-money"
                       placeholder="-"
                       value={rec.actualBalance ?? ''}
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -447,17 +549,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input editable-cell-input-money"
                       placeholder="0"
                       value={rec.cashAdded || ''}
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -473,17 +579,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeAOut || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -497,17 +607,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeABack || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -523,17 +637,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeBOut || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -547,17 +665,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeBBack || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -573,17 +695,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeCOut || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -597,17 +723,21 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     className="col-input-tint"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isLocked && onOpenUnlock) onOpenUnlock();
+                      if (isDayLocked) {
+                        toggleUnlockReconciledDay(day.date);
+                      } else if (isLocked && onOpenUnlock) {
+                        onOpenUnlock();
+                      }
                     }}
-                    style={{ cursor: isLocked ? 'not-allowed' : undefined }}
+                    style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
                   >
                     <input
                       type="number"
                       className="editable-cell-input"
                       value={rec.typeCBack || ''}
                       placeholder="0"
-                      disabled={isLocked}
-                      title={isLocked ? 'Canvas Locked - click to enter PIN' : undefined}
+                      disabled={isCellDisabled}
+                      title={cellTitle}
                       onChange={(e) =>
                         onUpdateRecord(
                           day.date,
@@ -617,6 +747,68 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                       }
                     />
                   </td>
+
+                  {/* Point 1: Dynamic custom phone model inputs (Tecno 64GB, Itel 128GB, Itel 64GB, Infinix 128GB, etc.) */}
+                  {customPhoneTypes.map((cp) => (
+                    <React.Fragment key={cp.id}>
+                      <td
+                        className="col-input-tint"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isDayLocked) {
+                            toggleUnlockReconciledDay(day.date);
+                          } else if (isLocked && onOpenUnlock) {
+                            onOpenUnlock();
+                          }
+                        }}
+                        style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
+                      >
+                        <input
+                          type="number"
+                          className="editable-cell-input"
+                          value={(rec as any)[`custom_out_${cp.id}`] ?? ''}
+                          placeholder="0"
+                          disabled={isCellDisabled}
+                          title={cellTitle}
+                          onChange={(e) =>
+                            onUpdateRecord(
+                              day.date,
+                              `custom_out_${cp.id}` as any,
+                              Number(e.target.value)
+                            )
+                          }
+                        />
+                      </td>
+                      <td
+                        className="col-input-tint"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isDayLocked) {
+                            toggleUnlockReconciledDay(day.date);
+                          } else if (isLocked && onOpenUnlock) {
+                            onOpenUnlock();
+                          }
+                        }}
+                        style={{ cursor: isCellDisabled ? 'not-allowed' : undefined }}
+                      >
+                        <input
+                          type="number"
+                          className="editable-cell-input"
+                          value={(rec as any)[`custom_back_${cp.id}`] ?? ''}
+                          placeholder="0"
+                          disabled={isCellDisabled}
+                          title={cellTitle}
+                          onChange={(e) =>
+                            onUpdateRecord(
+                              day.date,
+                              `custom_back_${cp.id}` as any,
+                              Number(e.target.value)
+                            )
+                          }
+                        />
+                      </td>
+                    </React.Fragment>
+                  ))}
 
                   {/* Cash Given (N) */}
                   <td className="tabular-nums" style={{ color: day.cashGivenOut > 0 ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
@@ -685,12 +877,64 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                     )}
                   </td>
 
-                  {/* Position Badge */}
+                  {/* Position Badge with Reconciled Safety Lock (Point 9) */}
                   <td className="col-left">
                     {day.positionStatus === 'All reconciled' ? (
-                      <span className="badge badge-success">
-                        <CheckCircle2 size={12} /> All reconciled
-                      </span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <CheckCircle2 size={12} /> Reconciled
+                        </span>
+                        {isDayLocked ? (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{
+                              padding: '1px 5px',
+                              fontSize: '0.65rem',
+                              height: 'auto',
+                              lineHeight: 1.2,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              cursor: 'pointer',
+                              background: 'rgba(245, 158, 11, 0.1)',
+                              borderColor: 'rgba(245, 158, 11, 0.3)',
+                              color: '#f59e0b',
+                            }}
+                            title="Safety Lock Active: Day is reconciled and protected from accidental edits. Click to unlock for error correction."
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleUnlockReconciledDay(day.date);
+                            }}
+                          >
+                            <Lock size={10} /> Locked
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{
+                              padding: '1px 5px',
+                              fontSize: '0.65rem',
+                              height: 'auto',
+                              lineHeight: 1.2,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              borderColor: '#10b981',
+                              color: '#10b981',
+                              cursor: 'pointer',
+                            }}
+                            title="Unlocked for error correction. Click to re-lock."
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleUnlockReconciledDay(day.date);
+                            }}
+                          >
+                            <Unlock size={10} /> Unlocked
+                          </button>
+                        )}
+                      </div>
                     ) : day.positionStatus === 'No trading' ? (
                       <span className="badge badge-neutral">
                         <MinusCircle size={12} /> No trading
@@ -765,6 +1009,28 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
                 {formatNumber(month.records.reduce((acc, r) => acc + (r.typeCBack || 0), 0))}
               </td>
 
+              {/* Point 1: Dynamic totals for custom phone models (Tecno, Itel, Infinix, etc.) */}
+              {customPhoneTypes.map((cp) => (
+                <React.Fragment key={cp.id}>
+                  <td className="tabular-nums">
+                    {formatNumber(
+                      month.records.reduce(
+                        (acc, r) => acc + (((r as any)[`custom_out_${cp.id}`] as number) || 0),
+                        0
+                      )
+                    )}
+                  </td>
+                  <td className="tabular-nums">
+                    {formatNumber(
+                      month.records.reduce(
+                        (acc, r) => acc + (((r as any)[`custom_back_${cp.id}`] as number) || 0),
+                        0
+                      )
+                    )}
+                  </td>
+                </React.Fragment>
+              ))}
+
               <td className="tabular-nums" style={{ color: 'var(--accent-rose)' }}>
                 {formatNumber(summary.totalCapitalDeployed)}
               </td>
@@ -807,6 +1073,139 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
           </tfoot>
         </table>
       </div>
+
+      {/* Point 5: Capital Adjustment Modal (Add / Reduce Capital - Col C & AH12) */}
+      {showCapitalModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => setShowCapitalModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.5rem',
+              width: '420px',
+              maxWidth: '92vw',
+              boxShadow: 'var(--shadow-modal)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
+                <Coins size={18} style={{ color: 'var(--accent-emerald)' }} /> Capital / Float Adjustment (Col C)
+              </h3>
+              <button
+                className="btn-icon-close"
+                onClick={() => setShowCapitalModal(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.4 }}>
+              Add or withdraw capital directly from the float. In spreadsheet <strong>Column C & AH12</strong>, adding capital injects money into your float, while taking money out reduces it.
+            </p>
+
+            <form onSubmit={handleApplyCapitalAdjust}>
+              <div style={{ marginBottom: '0.9rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 600 }}>
+                  Select Date
+                </label>
+                <input
+                  type="date"
+                  className="editable-cell-input"
+                  value={capitalDate}
+                  onChange={(e) => setCapitalDate(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem' }}>
+                <button
+                  type="button"
+                  className={`btn ${capitalAction === 'add' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    background: capitalAction === 'add' ? 'var(--accent-emerald)' : undefined,
+                    color: capitalAction === 'add' ? '#ffffff' : undefined,
+                  }}
+                  onClick={() => setCapitalAction('add')}
+                >
+                  <span style={{ fontSize: '1rem', fontWeight: 700 }}>+</span> Add Capital
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${capitalAction === 'reduce' ? 'btn-secondary' : 'btn-secondary'}`}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    background: capitalAction === 'reduce' ? 'var(--accent-rose)' : undefined,
+                    color: capitalAction === 'reduce' ? '#ffffff' : undefined,
+                  }}
+                  onClick={() => setCapitalAction('reduce')}
+                >
+                  <span style={{ fontSize: '1rem', fontWeight: 700 }}>-</span> Withdraw / Reduce
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '1.2rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 600 }}>
+                  Amount (KES)
+                </label>
+                <input
+                  type="number"
+                  autoFocus
+                  className="editable-cell-input editable-cell-input-money"
+                  placeholder="e.g. 50000"
+                  value={capitalAmount || ''}
+                  onChange={(e) => setCapitalAmount(Math.max(0, Number(e.target.value)))}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1.1rem', fontWeight: 700 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowCapitalModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={capitalAmount <= 0}
+                >
+                  Save Adjustment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -29,6 +29,42 @@ export const DEFAULT_PHONE_TYPES: PhoneTypeConfig[] = [
     baseProfit: 100,
     secondAccountSpread: 0,
   },
+  {
+    id: 'tecno-64',
+    name: 'Tecno 64GB',
+    model: 'Tecno Spark / Pop 64GB',
+    cost: 3550,
+    returnCash: 3750,
+    baseProfit: 100,
+    secondAccountSpread: 100,
+  },
+  {
+    id: 'itel-128',
+    name: 'Itel 128GB',
+    model: 'Itel A70 / P55 128GB',
+    cost: 3700,
+    returnCash: 3800,
+    baseProfit: 100,
+    secondAccountSpread: 0,
+  },
+  {
+    id: 'itel-64',
+    name: 'Itel 64GB',
+    model: 'Itel A60 / A70 64GB',
+    cost: 3450,
+    returnCash: 3650,
+    baseProfit: 100,
+    secondAccountSpread: 100,
+  },
+  {
+    id: 'infinix-128',
+    name: 'Infinix 128GB',
+    model: 'Infinix Smart 8 / Hot 40 128GB',
+    cost: 3800,
+    returnCash: 3950,
+    baseProfit: 100,
+    secondAccountSpread: 50,
+  },
 ];
 
 export const INITIAL_MONTHS: MonthData[] = [

@@ -19,7 +19,8 @@ import {
   Lock,
   Unlock,
   KeyRound,
-  HardDrive
+  HardDrive,
+  Settings
 } from 'lucide-react';
 import {
   MonthData,
@@ -65,10 +66,10 @@ export default function Home() {
   const [activeMonthId, setActiveMonthId] = useState<string>('2026-09');
   
   // Navigation & View State
-  const [activeMainTab, setActiveMainTab] = useState<'dashboard' | 'ledger' | 'samsung' | 'collo' | 'allmonths' | 'sheet1'>('ledger');
-  const [bottomActiveView, setBottomActiveView] = useState<ActiveSheetView>('september');
+  const [activeMainTab, setActiveMainTab] = useState<'dashboard' | 'ledger' | 'samsung' | 'collo' | 'allmonths' | 'sheet1'>('dashboard');
+  const [bottomActiveView, setBottomActiveView] = useState<ActiveSheetView>('dashboard');
 
-  // Theme & Security
+  // Theme & Security (Point 6: Defaults to View-Only mode unless authenticated as Owner)
   const [theme, setTheme] = useState<'odoo' | 'light'>('odoo');
   const [ownerPassword, setOwnerPassword] = useState<string>('1234');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -76,8 +77,8 @@ export default function Home() {
 
   // Interactive selection
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-21');
-  const [ownerMode, setOwnerMode] = useState<boolean>(true);
-  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [ownerMode, setOwnerMode] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(true);
 
   // Live Counting Clock & Date State
   const [liveTime, setLiveTime] = useState<Date | null>(null);
@@ -88,6 +89,19 @@ export default function Home() {
     const clockInterval = setInterval(() => {
       setLiveTime(new Date());
     }, 1000);
+
+    // Restore owner mode if previously authenticated in this browser
+    try {
+      const savedOwner = localStorage.getItem('oyigo_owner_mode');
+      if (savedOwner === 'true') {
+        setOwnerMode(true);
+        setIsLocked(false);
+        setActiveMainTab('ledger');
+      }
+    } catch (e) {
+      console.warn('localStorage not available:', e);
+    }
+
     return () => clearInterval(clockInterval);
   }, []);
 
@@ -243,7 +257,32 @@ export default function Home() {
         if (m.id !== currentMonth.id) return m;
         const updatedRecords = m.records.map((r) => {
           if (r.date !== date) return r;
-          const updated = { ...r, [field]: value };
+          let updated: DailyRecord;
+          if (field.startsWith('custom_out_')) {
+            const ptId = field.replace('custom_out_', '');
+            const prevCustom = r.customPhones || {};
+            const cur = prevCustom[ptId] || { out: 0, back: 0 };
+            updated = {
+              ...r,
+              customPhones: {
+                ...prevCustom,
+                [ptId]: { ...cur, out: Math.max(0, Number(value) || 0) },
+              },
+            };
+          } else if (field.startsWith('custom_back_')) {
+            const ptId = field.replace('custom_back_', '');
+            const prevCustom = r.customPhones || {};
+            const cur = prevCustom[ptId] || { out: 0, back: 0 };
+            updated = {
+              ...r,
+              customPhones: {
+                ...prevCustom,
+                [ptId]: { ...cur, back: Math.max(0, Number(value) || 0) },
+              },
+            };
+          } else {
+            updated = { ...r, [field]: value };
+          }
           // Post to SQLite backend
           fetch('/api/data', {
             method: 'POST',
@@ -973,27 +1012,68 @@ export default function Home() {
               )}
             </button>
 
-            <button
-              className={`btn-secondary ${ownerMode ? 'badge-success' : ''}`}
-              style={{
-                background: ownerMode ? 'rgba(16, 185, 129, 0.15)' : undefined,
-                color: ownerMode ? 'var(--accent-emerald)' : undefined,
-                borderColor: ownerMode ? 'rgba(16, 185, 129, 0.4)' : undefined,
-              }}
-              onClick={() => setOwnerMode(!ownerMode)}
-              title={ownerMode ? 'Owner Mode Active (Click to switch to View Only)' : 'Enable Owner Mode'}
-            >
-              <Shield size={13} /> Owner Mode
-            </button>
+            {ownerMode ? (
+              <button
+                className="btn-secondary badge-success"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: 'var(--accent-emerald)',
+                  borderColor: 'rgba(16, 185, 129, 0.4)',
+                  fontWeight: 600,
+                }}
+                onClick={() => {
+                  if (confirm('Switch to View-Only mode? Editing will be locked until you enter PIN.')) {
+                    setOwnerMode(false);
+                    setIsLocked(true);
+                    try {
+                      localStorage.removeItem('oyigo_owner_mode');
+                    } catch (e) {}
+                  }
+                }}
+                title="Owner Mode Active. All editing features unlocked. Click to lock into View-Only."
+              >
+                <Shield size={13} /> Owner Mode (Active)
+              </button>
+            ) : (
+              <button
+                className="btn-secondary"
+                style={{
+                  background: 'rgba(217, 119, 6, 0.15)',
+                  color: 'var(--accent-amber)',
+                  borderColor: 'rgba(217, 119, 6, 0.4)',
+                  fontWeight: 600,
+                }}
+                onClick={() => {
+                  setIsUnlockPrompt(true);
+                  setShowPasswordModal(true);
+                }}
+                title="View-Only Mode. Click to enter Owner PIN (1234) and unlock edit permissions."
+              >
+                <Lock size={13} /> View-Only (Owner Login)
+              </button>
+            )}
 
-            <button
-              className="btn-secondary"
-              onClick={handleToggleLock}
-              title={isLocked ? 'Canvas Locked (Click to enter PIN & unlock)' : 'Lock Canvas'}
-            >
-              {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
-              {isLocked ? 'Locked' : 'Lock'}
-            </button>
+            {ownerMode && (
+              <>
+                <button
+                  className="btn-secondary"
+                  onClick={handleToggleLock}
+                  title={isLocked ? 'Canvas Locked (Click to enter PIN & unlock)' : 'Lock Canvas'}
+                >
+                  {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
+                  {isLocked ? 'Locked' : 'Lock'}
+                </button>
+
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowSettings(true)}
+                  title="Phone Pricing & Catalog Settings (Cost, Return Amount, 2nd Account Margin - Col AH)"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Settings size={13} style={{ color: 'var(--odoo-teal)' }} /> Pricing & Rates
+                </button>
+              </>
+            )}
 
             <div
               className="header-date-chip"
@@ -1116,26 +1196,28 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="main-content">
-        {/* Direct Canvas Recorder */}
-        <DirectCanvasRecorder
-          activeDate={selectedDate}
-          month={currentMonth}
-          phoneTypes={phoneTypes}
-          onSelectDate={(d) => setSelectedDate(d)}
-          onRecordSamsung={handleRecordSamsungOnly}
-          onRecordLedgerCash={handleRecordLedgerCashOnly}
-          onDualRecord={handleDualRecord}
-          onSaveDayFigures={handleSaveDayFigures}
-          onOpenDayFigures={(date) => {
-            setEntryModalDate(date);
-            setShowEntryModal(true);
-          }}
-          onOpenAddPhones={handleOpenAddPhones}
-          onNewDateRecord={() => {
-            setEntryModalDate(undefined);
-            setShowEntryModal(true);
-          }}
-        />
+        {/* Point 7: Direct Canvas Recorder only visible to Owner on Dashboard or active Trading Month Ledger */}
+        {ownerMode && (activeMainTab === 'dashboard' || activeMainTab === 'ledger') && currentMonth.model === 'self-financed' && (
+          <DirectCanvasRecorder
+            activeDate={selectedDate}
+            month={currentMonth}
+            phoneTypes={phoneTypes}
+            onSelectDate={(d) => setSelectedDate(d)}
+            onRecordSamsung={handleRecordSamsungOnly}
+            onRecordLedgerCash={handleRecordLedgerCashOnly}
+            onDualRecord={handleDualRecord}
+            onSaveDayFigures={handleSaveDayFigures}
+            onOpenDayFigures={(date) => {
+              setEntryModalDate(date);
+              setShowEntryModal(true);
+            }}
+            onOpenAddPhones={handleOpenAddPhones}
+            onNewDateRecord={() => {
+              setEntryModalDate(undefined);
+              setShowEntryModal(true);
+            }}
+          />
+        )}
 
         {/* Tab 1: Dashboard */}
         {activeMainTab === 'dashboard' && (
@@ -1144,6 +1226,7 @@ export default function Home() {
             historicalSummary={HISTORICAL_EXECUTIVE_SUMMARY}
             phoneTypes={phoneTypes}
             monthName={currentMonth.name}
+            calculatedDays={calculatedDays}
             samsungTracker={samsungTracker}
             onOpenLedger={() => {
               setActiveMainTab('ledger');
@@ -1322,6 +1405,10 @@ export default function Home() {
           onSaveNewPassword={handleSavePassword}
           onUnlockSuccess={() => {
             setIsLocked(false);
+            setOwnerMode(true);
+            try {
+              localStorage.setItem('oyigo_owner_mode', 'true');
+            } catch (e) {}
           }}
           onClose={() => {
             setShowPasswordModal(false);

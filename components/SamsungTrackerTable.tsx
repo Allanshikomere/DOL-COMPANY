@@ -31,7 +31,16 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
   const [modalDate, setModalDate] = useState('2026-09-23');
   const [modalCashOut, setModalCashOut] = useState<number>(3500);
   const [modalCashIn, setModalCashIn] = useState<number>(0);
+  const [modalMode, setModalMode] = useState<'cumulative' | 'replace'>('cumulative');
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+
+  // Point 4: Quick cumulative add state
+  const [quickAddTarget, setQuickAddTarget] = useState<{
+    date: string;
+    field: 'cashOut' | 'cashIn';
+    current: number;
+  } | null>(null);
+  const [quickAddVal, setQuickAddVal] = useState<number>(0);
 
   // Ensure all dates from 2026-09-16 through 2026-09-30 exist in table view
   const allSeptemberDates = useMemo(() => {
@@ -111,11 +120,26 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
     setTimeout(() => setSaveNotice(null), 2500);
   };
 
+  // Point 4: Add cumulatively to existing figures
+  const handleAddCumulative = (entryDate: string, field: 'cashOut' | 'cashIn', addAmount: number) => {
+    if (addAmount <= 0) return;
+    const existing = displayRows.find((e) => e.date === entryDate);
+    const current = field === 'cashOut' ? (existing?.cashOut || 0) : (existing?.cashIn || 0);
+    const updated = current + addAmount;
+    handleCellChange(entryDate, field, updated);
+    setQuickAddTarget(null);
+    setQuickAddVal(0);
+  };
+
   const handleModalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleCellChange(modalDate, 'cashOut', modalCashOut);
-    if (modalCashIn > 0) {
-      handleCellChange(modalDate, 'cashIn', modalCashIn);
+    const existing = displayRows.find((e) => e.date === modalDate);
+    const finalOut = modalMode === 'cumulative' ? (existing?.cashOut || 0) + modalCashOut : modalCashOut;
+    const finalIn = modalMode === 'cumulative' ? (existing?.cashIn || 0) + modalCashIn : modalCashIn;
+
+    handleCellChange(modalDate, 'cashOut', finalOut);
+    if (finalIn > 0 || modalMode === 'replace') {
+      handleCellChange(modalDate, 'cashIn', finalIn);
     }
     setShowAddModal(false);
   };
@@ -279,44 +303,92 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Money Given Out (Editable) */}
+                    {/* Money Given Out (Editable with cumulative add button) */}
                     <td className="col-input-tint">
-                      <input
-                        type="number"
-                        min="0"
-                        className="editable-cell-input editable-cell-input-money"
-                        style={{
-                          width: '100%',
-                          maxWidth: 120,
-                          color: item.cashOut > 0 ? 'var(--accent-rose)' : undefined,
-                          fontWeight: 700,
-                        }}
-                        value={item.cashOut || ''}
-                        placeholder="-"
-                        onChange={(e) =>
-                          handleCellChange(item.date, 'cashOut', parseInt(e.target.value) || 0)
-                        }
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          className="editable-cell-input editable-cell-input-money"
+                          style={{
+                            width: '100%',
+                            color: item.cashOut > 0 ? 'var(--accent-rose)' : undefined,
+                            fontWeight: 700,
+                          }}
+                          value={item.cashOut || ''}
+                          placeholder="-"
+                          onChange={(e) =>
+                            handleCellChange(item.date, 'cashOut', parseInt(e.target.value) || 0)
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{
+                            padding: '1px 5px',
+                            fontSize: '0.7rem',
+                            height: '24px',
+                            lineHeight: 1,
+                            fontWeight: 700,
+                            color: 'var(--accent-rose)',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            flexShrink: 0,
+                          }}
+                          title={`Click to add cash sent cumulatively to ${formattedDate} (Current: KES ${item.cashOut.toLocaleString()})`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickAddTarget({ date: item.date, field: 'cashOut', current: item.cashOut });
+                            setQuickAddVal(0);
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
 
-                    {/* Expected Received Back (Editable) */}
+                    {/* Expected Received Back (Editable with cumulative add button) */}
                     <td className="col-input-tint">
-                      <input
-                        type="number"
-                        min="0"
-                        className="editable-cell-input editable-cell-input-money"
-                        style={{
-                          width: '100%',
-                          maxWidth: 120,
-                          color: item.cashIn > 0 ? 'var(--accent-emerald)' : undefined,
-                          fontWeight: 700,
-                        }}
-                        value={item.cashIn || ''}
-                        placeholder="-"
-                        onChange={(e) =>
-                          handleCellChange(item.date, 'cashIn', parseInt(e.target.value) || 0)
-                        }
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          className="editable-cell-input editable-cell-input-money"
+                          style={{
+                            width: '100%',
+                            color: item.cashIn > 0 ? 'var(--accent-emerald)' : undefined,
+                            fontWeight: 700,
+                          }}
+                          value={item.cashIn || ''}
+                          placeholder="-"
+                          onChange={(e) =>
+                            handleCellChange(item.date, 'cashIn', parseInt(e.target.value) || 0)
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{
+                            padding: '1px 5px',
+                            fontSize: '0.7rem',
+                            height: '24px',
+                            lineHeight: 1,
+                            fontWeight: 700,
+                            color: 'var(--accent-emerald)',
+                            borderColor: 'rgba(16, 185, 129, 0.3)',
+                            background: 'rgba(16, 185, 129, 0.08)',
+                            flexShrink: 0,
+                          }}
+                          title={`Click to add cash received cumulatively to ${formattedDate} (Current: KES ${item.cashIn.toLocaleString()})`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickAddTarget({ date: item.date, field: 'cashIn', current: item.cashIn });
+                            setQuickAddVal(0);
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
 
                     {/* Net Difference (Auto-Computed Formula) */}
@@ -412,7 +484,85 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
         </div>
       </div>
 
-      {/* Quick Entry Modal */}
+      {/* Point 4: Quick Cumulative Add Popover Modal */}
+      {quickAddTarget && (
+        <div className="modal-backdrop" onClick={() => setQuickAddTarget(null)}>
+          <div className="modal-dialog" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddCumulative(quickAddTarget.date, quickAddTarget.field, quickAddVal);
+              }}
+            >
+              <div className="modal-header">
+                <h3>
+                  + Add Cumulatively ({quickAddTarget.field === 'cashOut' ? 'Money Given Out' : 'Cash Received'})
+                </h3>
+                <button type="button" className="btn-icon-close" onClick={() => setQuickAddTarget(null)}>
+                  ✕
+                </button>
+              </div>
+              <div className="modal-body">
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  Date: <strong>{quickAddTarget.date}</strong>
+                </div>
+
+                <div
+                  style={{
+                    background: 'var(--bg-card-hover)',
+                    border: '1px solid var(--border-card)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.75rem',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>Current Value:</span>
+                    <strong className="tabular-nums" style={{ color: 'var(--text-main)' }}>
+                      KES {quickAddTarget.current.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                    <span>Adding (sent/received):</span>
+                    <strong className="tabular-nums" style={{ color: quickAddTarget.field === 'cashOut' ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                      + KES {quickAddVal.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <span>New Total:</span>
+                    <span className="tabular-nums" style={{ color: 'var(--odoo-teal)' }}>
+                      KES {(quickAddTarget.current + quickAddVal).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Amount to Add (KES)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    autoFocus
+                    className="form-input"
+                    placeholder="e.g. 1200"
+                    value={quickAddVal || ''}
+                    onChange={(e) => setQuickAddVal(Math.max(0, parseInt(e.target.value) || 0))}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setQuickAddTarget(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={quickAddVal <= 0}>
+                  + Add Onto Total
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Entry Modal with Cumulative Toggle */}
       {showAddModal && (
         <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
           <div className="modal-dialog" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
@@ -422,6 +572,26 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                 <button type="button" className="btn-icon-close" onClick={() => setShowAddModal(false)}>✕</button>
               </div>
               <div className="modal-body">
+                {/* Cumulative vs Replace Mode Switch (Point 4) */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <button
+                    type="button"
+                    className={`btn ${modalMode === 'cumulative' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, padding: '0.45rem', fontSize: '0.775rem' }}
+                    onClick={() => setModalMode('cumulative')}
+                  >
+                    + Add to Existing Figures
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${modalMode === 'replace' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, padding: '0.45rem', fontSize: '0.775rem' }}
+                    onClick={() => setModalMode('replace')}
+                  >
+                    = Replace Exact Value
+                  </button>
+                </div>
+
                 <div className="form-group">
                   <label>Date</label>
                   <input
@@ -432,7 +602,9 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                   />
                 </div>
                 <div className="form-group">
-                  <label>Money Given Out (KES)</label>
+                  <label>
+                    Money Given Out (KES){modalMode === 'cumulative' ? ' (Amount to add)' : ''}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -442,7 +614,9 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                   />
                 </div>
                 <div className="form-group">
-                  <label>Expected Received Back (KES) - Optional</label>
+                  <label>
+                    Expected Received Back (KES){modalMode === 'cumulative' ? ' (Amount to add)' : ' - Optional'}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -461,6 +635,12 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                     fontSize: '0.8rem',
                   }}
                 >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <span>Mode:</span>
+                    <strong style={{ color: 'var(--odoo-teal)' }}>
+                      {modalMode === 'cumulative' ? 'Cumulative (Adds to current figures)' : 'Direct Set'}
+                    </strong>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Net Difference:</span>
                     <strong style={{ color: modalCashIn - modalCashOut < 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)' }}>
@@ -474,7 +654,7 @@ export const SamsungTrackerTable: React.FC<SamsungTrackerTableProps> = ({
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary">
-                  Save Entry
+                  {modalMode === 'cumulative' ? '+ Add to Date' : 'Save Entry'}
                 </button>
               </div>
             </form>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Wallet,
   TrendingUp,
@@ -11,9 +11,11 @@ import {
   AlertCircle,
   PiggyBank,
   CheckCircle2,
-  Clock
+  Clock,
+  Activity,
+  BarChart3
 } from 'lucide-react';
-import { MonthSummary, PhoneTypeConfig, ExecutiveSummary, SamsungTrackerEntry } from '../lib/types';
+import { MonthSummary, PhoneTypeConfig, ExecutiveSummary, SamsungTrackerEntry, CalculatedDay } from '../lib/types';
 import { formatKES, formatNumber } from '../lib/engine';
 
 interface DashboardOverviewProps {
@@ -21,6 +23,7 @@ interface DashboardOverviewProps {
   historicalSummary: ExecutiveSummary;
   phoneTypes: PhoneTypeConfig[];
   monthName: string;
+  calculatedDays?: CalculatedDay[];
   samsungTracker?: SamsungTrackerEntry[];
   onOpenLedger: () => void;
   onOpenReconciliation: () => void;
@@ -32,11 +35,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   historicalSummary,
   phoneTypes,
   monthName,
+  calculatedDays = [],
   samsungTracker = [],
   onOpenLedger,
   onOpenReconciliation,
   onOpenSamsung,
 }) => {
+  const isSeptember = monthName.toLowerCase().includes('september');
   const samsungOut = samsungTracker.reduce((acc, e) => acc + (e.cashOut || 0), 0);
   const samsungIn = samsungTracker.reduce((acc, e) => acc + (e.cashIn || 0), 0);
   const samsungNet = samsungIn - samsungOut;
@@ -208,6 +213,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Point 10: Interactive Visual Micro-Graph for Phones & Cash Progress */}
+      {calculatedDays.length > 0 && (
+        <DashboardMicroGraph calculatedDays={calculatedDays} />
+      )}
 
       {/* Two Column Section: Pipeline Tracker & Operating Model Comparison */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
@@ -396,81 +406,401 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
 
-        {/* Samsung Financing & Sales Tracker Overview Card */}
-        <div className="ledger-card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Smartphone size={18} color="var(--accent-blue)" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Samsung Sales Channel & Quick Float</h3>
-            </div>
-            {onOpenSamsung && (
-              <button
-                className="btn-secondary"
-                style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', color: 'var(--odoo-teal)' }}
-                onClick={onOpenSamsung}
-              >
-                Open Full Samsung Tracker →
-              </button>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-            <div
-              style={{
-                background: 'var(--bg-card-hover)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.75rem',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Samsung Capital Given Out</div>
-              <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-rose)' }}>
-                {formatKES(samsungOut)}
+        {/* Point 8: Samsung Financing & Sales Tracker Overview Card (September Active Channel) */}
+        {isSeptember ? (
+          <div className="ledger-card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Smartphone size={18} color="var(--accent-blue)" />
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Samsung Sales Channel & Quick Float</h3>
+                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>September Only Channel</span>
               </div>
-              <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>From float for Samsung inventory</div>
+              {onOpenSamsung && (
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', color: 'var(--odoo-teal)' }}
+                  onClick={onOpenSamsung}
+                >
+                  Open Full Samsung Tracker →
+                </button>
+              )}
             </div>
 
-            <div
-              style={{
-                background: 'var(--bg-card-hover)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.75rem',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Cash Recovered into Float</div>
-              <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                {formatKES(samsungIn)}
-              </div>
-              <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>Returned cash from sales</div>
-            </div>
-
-            <div
-              style={{
-                background: 'var(--bg-card-hover)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.75rem',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Net Difference / In Field</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <div
-                className="tabular-nums"
                 style={{
-                  fontSize: '1.15rem',
-                  fontWeight: 700,
-                  color: samsungNet < 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)',
+                  background: 'var(--bg-card-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
-                {samsungNet < 0 ? `(${formatKES(Math.abs(samsungNet))})` : formatKES(samsungNet)}
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Samsung Capital Given Out</div>
+                <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-rose)' }}>
+                  {formatKES(samsungOut)}
+                </div>
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>From float for Samsung inventory</div>
               </div>
-              <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>
-                {samsungPending.length} active dates pending
+
+              <div
+                style={{
+                  background: 'var(--bg-card-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Cash Recovered into Float</div>
+                <div className="tabular-nums" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+                  {formatKES(samsungIn)}
+                </div>
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>Returned cash from sales</div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--bg-card-hover)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Net Difference / In Field</div>
+                <div
+                  className="tabular-nums"
+                  style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    color: samsungNet < 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)',
+                  }}
+                >
+                  {samsungNet < 0 ? `(${formatKES(Math.abs(samsungNet))})` : formatKES(samsungNet)}
+                </div>
+                <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)' }}>
+                  {samsungPending.length} active dates pending
+                </div>
               </div>
             </div>
           </div>
+        ) : (
+          <div
+            className="ledger-card"
+            style={{
+              padding: '1rem 1.25rem',
+              background: 'var(--bg-card)',
+              border: '1px dashed var(--border-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Smartphone size={16} color="var(--text-muted)" />
+              <div>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Samsung Sales Buffer (Inactive in {monthName})</span>
+                <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Confirmed: Samsung Financing quick tracker was operated exclusively during September 2026. Standard ledger operations apply for this period.
+                </p>
+              </div>
+            </div>
+            <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>September Only</span>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+interface DashboardMicroGraphProps {
+  calculatedDays: CalculatedDay[];
+}
+
+const DashboardMicroGraph: React.FC<DashboardMicroGraphProps> = ({ calculatedDays }) => {
+  const [chartMode, setChartMode] = useState<'cash' | 'phones'>('cash');
+  const [hoveredDay, setHoveredDay] = useState<CalculatedDay | null>(null);
+
+  if (!calculatedDays.length) return null;
+
+  // For Cash Float chart
+  const floats = calculatedDays.map((d) => d.closingFloat);
+  const minFloat = Math.min(...floats, 50000);
+  const maxFloat = Math.max(...floats, 210000);
+  const rangeFloat = maxFloat - minFloat || 1;
+
+  // For Phones chart
+  const maxPhones = Math.max(
+    ...calculatedDays.map((d) => Math.max(d.totalPhonesOut, d.totalPhonesBack)),
+    10
+  );
+
+  const svgWidth = 760;
+  const svgHeight = 160;
+  const padLeft = 46;
+  const padRight = 20;
+  const padTop = 15;
+  const padBottom = 25;
+  const chartW = svgWidth - padLeft - padRight;
+  const chartH = svgHeight - padTop - padBottom;
+
+  const pointsFloat = calculatedDays.map((d, i) => {
+    const x = padLeft + (i / Math.max(calculatedDays.length - 1, 1)) * chartW;
+    const y = padTop + chartH - ((d.closingFloat - minFloat) / rangeFloat) * chartH;
+    return { x, y, day: d };
+  });
+
+  const pathD = pointsFloat.reduce((acc, p, i) => {
+    return i === 0 ? `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}` : `${acc} L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+  }, '');
+
+  const areaD = pointsFloat.length
+    ? `${pathD} L ${pointsFloat[pointsFloat.length - 1].x.toFixed(1)} ${padTop + chartH} L ${pointsFloat[0].x.toFixed(1)} ${padTop + chartH} Z`
+    : '';
+
+  return (
+    <div className="ledger-card" style={{ padding: '1.25rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '0.85rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Activity size={18} color="var(--odoo-teal)" />
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
+            Progress & Velocity Trajectory
+          </h3>
+          <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
+            {chartMode === 'cash' ? 'Float Trajectory' : 'Phones Velocity'}
+          </span>
         </div>
 
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <button
+            type="button"
+            className={`btn ${chartMode === 'cash' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+            onClick={() => setChartMode('cash')}
+          >
+            💰 Cash / Float Trend
+          </button>
+          <button
+            type="button"
+            className={`btn ${chartMode === 'phones' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+            onClick={() => setChartMode('phones')}
+          >
+            📱 Phone Volumes Out/Back
+          </button>
+        </div>
+      </div>
+
+      {/* SVG Container */}
+      <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+        <svg
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          style={{ width: '100%', height: 'auto', minWidth: '550px', display: 'block' }}
+        >
+          <defs>
+            <linearGradient id="microFloatGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#017e84" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#017e84" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          <line x1={padLeft} y1={padTop} x2={svgWidth - padRight} y2={padTop} stroke="var(--border-subtle)" strokeDasharray="3 3" />
+          <line x1={padLeft} y1={padTop + chartH / 2} x2={svgWidth - padRight} y2={padTop + chartH / 2} stroke="var(--border-subtle)" strokeDasharray="3 3" />
+          <line x1={padLeft} y1={padTop + chartH} x2={svgWidth - padRight} y2={padTop + chartH} stroke="var(--border-subtle)" />
+
+          {chartMode === 'cash' ? (
+            <>
+              {/* Float Area */}
+              <path d={areaD} fill="url(#microFloatGrad)" />
+              {/* Float Line */}
+              <path d={pathD} fill="none" stroke="#017e84" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+              {/* Data Dots */}
+              {pointsFloat.map((p, idx) => (
+                <circle
+                  key={idx}
+                  cx={p.x}
+                  cy={p.y}
+                  r={hoveredDay?.date === p.day.date ? 5 : 3}
+                  fill={hoveredDay?.date === p.day.date ? '#38bdf8' : '#017e84'}
+                  stroke="#ffffff"
+                  strokeWidth="1.5"
+                  style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
+                  onMouseEnter={() => setHoveredDay(p.day)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                />
+              ))}
+
+              <text x={padLeft - 6} y={padTop + 4} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+                {Math.round(maxFloat / 1000)}k
+              </text>
+              <text x={padLeft - 6} y={padTop + chartH + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+                {Math.round(minFloat / 1000)}k
+              </text>
+            </>
+          ) : (
+            <>
+              {/* Phones Out Bars & Phones Back Bars */}
+              {calculatedDays.map((d, i) => {
+                const barWidth = Math.max(chartW / calculatedDays.length - 4, 6);
+                const x = padLeft + (i / calculatedDays.length) * chartW + 2;
+                const barH = (d.totalPhonesOut / maxPhones) * chartH;
+                const y = padTop + chartH - barH;
+
+                const backBarH = (d.totalPhonesBack / maxPhones) * chartH;
+                const backY = padTop + chartH - backBarH;
+
+                return (
+                  <g
+                    key={d.date}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setHoveredDay(d)}
+                    onMouseLeave={() => setHoveredDay(null)}
+                  >
+                    {/* Out Bar */}
+                    <rect
+                      x={x}
+                      y={y}
+                      width={barWidth / 2}
+                      height={barH}
+                      fill={hoveredDay?.date === d.date ? '#a855f7' : '#714B67'}
+                      rx={2}
+                    />
+                    {/* Back Bar */}
+                    <rect
+                      x={x + barWidth / 2 + 1}
+                      y={backY}
+                      width={barWidth / 2}
+                      height={backBarH}
+                      fill={hoveredDay?.date === d.date ? '#34d399' : '#10b981'}
+                      rx={2}
+                    />
+                  </g>
+                );
+              })}
+
+              <text x={padLeft - 6} y={padTop + 4} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+                {maxPhones}
+              </text>
+              <text x={padLeft - 6} y={padTop + chartH + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+                0
+              </text>
+            </>
+          )}
+
+          {/* Date Axis (first, mid, last) */}
+          {calculatedDays.length > 0 && (
+            <>
+              <text x={padLeft} y={svgHeight - 6} fontSize="10" fill="var(--text-muted)">
+                {calculatedDays[0].date.slice(5)}
+              </text>
+              <text x={padLeft + chartW / 2} y={svgHeight - 6} textAnchor="middle" fontSize="10" fill="var(--text-muted)">
+                {calculatedDays[Math.floor(calculatedDays.length / 2)].date.slice(5)}
+              </text>
+              <text x={padLeft + chartW} y={svgHeight - 6} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+                {calculatedDays[calculatedDays.length - 1].date.slice(5)}
+              </text>
+            </>
+          )}
+        </svg>
+
+        {/* Hover Tooltip Box */}
+        {hoveredDay && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 15,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.75rem',
+              boxShadow: 'var(--shadow-card)',
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          >
+            <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.2rem' }}>
+              📅 {hoveredDay.date}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Closing Float: </span>
+                <strong style={{ color: 'var(--odoo-teal)' }}>{formatKES(hoveredDay.closingFloat)}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Phones Out: </span>
+                <strong style={{ color: 'var(--accent-purple)' }}>{hoveredDay.totalPhonesOut}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Phones Back: </span>
+                <strong style={{ color: 'var(--accent-emerald)' }}>{hoveredDay.totalPhonesBack}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Status: </span>
+                <strong>{hoveredDay.positionStatus}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Legend & Stats Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '0.75rem',
+          paddingTop: '0.6rem',
+          borderTop: '1px solid var(--border-subtle)',
+          fontSize: '0.75rem',
+          color: 'var(--text-secondary)',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          {chartMode === 'cash' ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#017e84', display: 'inline-block' }} />
+                <span>Daily Float Balance (KES)</span>
+              </div>
+              <span style={{ color: 'var(--text-muted)' }}>Opening: <strong>200,000 KES</strong></span>
+              <span style={{ color: 'var(--text-muted)' }}>
+                Current Float: <strong style={{ color: 'var(--odoo-teal)' }}>{formatKES(calculatedDays[calculatedDays.length - 1]?.closingFloat || 0)}</strong>
+              </span>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '2px', background: '#714B67', display: 'inline-block' }} />
+                <span>Phones Out (Dispatched)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '2px', background: '#10b981', display: 'inline-block' }} />
+                <span>Phones Back (Reconciled)</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+          Hover any point to inspect exact day details
+        </div>
       </div>
     </div>
   );

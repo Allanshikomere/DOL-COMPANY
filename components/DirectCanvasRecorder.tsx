@@ -82,6 +82,7 @@ export const DirectCanvasRecorder: React.FC<DirectCanvasRecorderProps> = ({
   const [kesAmount, setKesAmount] = useState<number>(0);
   const [samsungOut, setSamsungOut] = useState<number>(0);
   const [samsungIn, setSamsungIn] = useState<number>(0);
+  const [samsungCumulativeMode, setSamsungCumulativeMode] = useState<boolean>(false);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Sync date when external activeDate changes
@@ -588,6 +589,24 @@ export const DirectCanvasRecorder: React.FC<DirectCanvasRecorderProps> = ({
             }}
           >
             <span style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>SAMSUNG</span>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{
+                padding: '1px 5px',
+                fontSize: '0.65rem',
+                height: '20px',
+                lineHeight: 1,
+                fontWeight: 600,
+                color: samsungCumulativeMode ? '#ffffff' : 'var(--text-muted)',
+                background: samsungCumulativeMode ? 'var(--odoo-teal)' : undefined,
+                borderColor: samsungCumulativeMode ? 'var(--odoo-teal)' : undefined,
+              }}
+              onClick={() => setSamsungCumulativeMode(!samsungCumulativeMode)}
+              title={samsungCumulativeMode ? 'Cumulative Mode ON: entering amounts adds onto existing' : 'Switch to Cumulative Add mode'}
+            >
+              {samsungCumulativeMode ? '+ Add' : 'Set'}
+            </button>
             <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.725rem' }}>OUT:</span>
             <input
               type="number"
@@ -596,7 +615,10 @@ export const DirectCanvasRecorder: React.FC<DirectCanvasRecorderProps> = ({
               style={{ width: 68, color: samsungOut > 0 ? 'var(--accent-rose)' : undefined }}
               value={samsungOut || ''}
               placeholder="0"
-              onChange={(e) => setSamsungOut(Math.max(0, parseInt(e.target.value) || 0))}
+              onChange={(e) => {
+                const val = Math.max(0, parseInt(e.target.value) || 0);
+                setSamsungOut(val);
+              }}
               title="Money Given Out for Samsung on this date"
             />
             <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.725rem', marginLeft: 2 }}>IN:</span>
@@ -607,7 +629,10 @@ export const DirectCanvasRecorder: React.FC<DirectCanvasRecorderProps> = ({
               style={{ width: 68, color: samsungIn > 0 ? 'var(--accent-emerald)' : undefined }}
               value={samsungIn || ''}
               placeholder="0"
-              onChange={(e) => setSamsungIn(Math.max(0, parseInt(e.target.value) || 0))}
+              onChange={(e) => {
+                const val = Math.max(0, parseInt(e.target.value) || 0);
+                setSamsungIn(val);
+              }}
               title="Cash Received Back from Samsung on this date"
             />
           </div>
