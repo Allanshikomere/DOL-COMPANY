@@ -13,7 +13,8 @@ export type ActiveSheetView =
   | 'october'
   | 'november'
   | 'december'
-  | 'sheet1';
+  | 'sheet1'
+  | 'documentation';
 
 interface BottomSheetsBarProps {
   activeView: ActiveSheetView;
@@ -37,6 +38,7 @@ export const BottomSheetsBar: React.FC<BottomSheetsBarProps> = ({
     { id: 'november', name: 'NOVEMBER', locked: true },
     { id: 'december', name: 'DECEMBER', locked: true },
     { id: 'sheet1', name: 'Sheet1' },
+    { id: 'documentation', name: 'DOCUMENTATION.md' },
   ];
 
   return (

@@ -56,6 +56,7 @@ import { DirectCanvasRecorder } from '../components/DirectCanvasRecorder';
 import { HowItWorksModal } from '../components/HowItWorksModal';
 import { Sheet1View } from '../components/Sheet1View';
 import { AllMonthsView } from '../components/AllMonthsView';
+import { DocumentationView } from '../components/DocumentationView';
 import { BottomSheetsBar, ActiveSheetView } from '../components/BottomSheetsBar';
 
 export default function Home() {
@@ -66,7 +67,7 @@ export default function Home() {
   const [activeMonthId, setActiveMonthId] = useState<string>('2026-09');
   
   // Navigation & View State
-  const [activeMainTab, setActiveMainTab] = useState<'dashboard' | 'ledger' | 'samsung' | 'collo' | 'allmonths' | 'sheet1'>('dashboard');
+  const [activeMainTab, setActiveMainTab] = useState<'dashboard' | 'ledger' | 'samsung' | 'collo' | 'allmonths' | 'sheet1' | 'documentation'>('dashboard');
   const [bottomActiveView, setBottomActiveView] = useState<ActiveSheetView>('dashboard');
 
   // Theme & Security (Point 6: Defaults to View-Only mode unless authenticated as Owner)
@@ -873,6 +874,8 @@ export default function Home() {
       setActiveMainTab('allmonths');
     } else if (view === 'sheet1') {
       setActiveMainTab('sheet1');
+    } else if (view === 'documentation') {
+      setActiveMainTab('documentation');
     }
   };
 
@@ -881,6 +884,9 @@ export default function Home() {
     if (monthId === 'all') {
       setActiveMainTab('allmonths');
       setBottomActiveView('all-months');
+    } else if (monthId === 'may-june' || monthId === 'july-august') {
+      setActiveMainTab('collo');
+      setBottomActiveView(monthId as ActiveSheetView);
     } else {
       setActiveMonthId(monthId);
       setActiveMainTab('ledger');
@@ -946,7 +952,7 @@ export default function Home() {
             >
               <Smartphone size={14} />
               <span>Samsung Tracker</span>
-              {(summary.samsungNet ?? -7900) < 0 && (
+              {(summary.samsungNet ?? -4400) < 0 && (
                 <span
                   className="badge badge-warning"
                   style={{
@@ -957,7 +963,7 @@ export default function Home() {
                   }}
                   title="Net funds currently deployed in Samsung channel"
                 >
-                  ({Math.abs(summary.samsungNet ?? -7900).toLocaleString()})
+                  ({Math.abs(summary.samsungNet ?? -4400).toLocaleString()})
                 </span>
               )}
             </button>
@@ -968,6 +974,18 @@ export default function Home() {
             >
               <Clock size={14} />
               Reconciliation
+            </button>
+
+            <button
+              className={`nav-tab-btn ${activeMainTab === 'documentation' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveMainTab('documentation');
+                setBottomActiveView('documentation');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <BookOpen size={14} />
+              Documentation
             </button>
 
             <button
@@ -1234,6 +1252,7 @@ export default function Home() {
             }}
             onOpenReconciliation={() => setShowReconciliation(true)}
             onOpenSamsung={() => setActiveMainTab('samsung')}
+            onSelectMonth={handleSelectAccountingPeriod}
           />
         )}
 
@@ -1297,6 +1316,9 @@ export default function Home() {
 
         {/* Tab 6: Sheet1 Enhancements Roadmap */}
         {activeMainTab === 'sheet1' && <Sheet1View />}
+
+        {/* Tab 7: Comprehensive System Documentation & Financial Audit Ledger */}
+        {activeMainTab === 'documentation' && <DocumentationView />}
       </main>
 
       {/* Bottom Sheets Navigation Bar (Google Sheets Style) */}
@@ -1313,7 +1335,7 @@ export default function Home() {
                 id: newId,
                 name,
                 model: 'self-financed',
-                openingFloat: summary.closingFloat || 68105,
+                openingFloat: summary.closingFloat || 111345,
                 records: Array.from({ length: 30 }, (_, i) => ({
                   date: `2026-11-${String(i + 1).padStart(2, '0')}`,
                   actualBalance: null,

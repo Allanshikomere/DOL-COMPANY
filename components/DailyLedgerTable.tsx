@@ -1074,6 +1074,234 @@ export const DailyLedgerTable: React.FC<DailyLedgerTableProps> = ({
         </table>
       </div>
 
+      {/* Spreadsheet Summary & Audit Reconciliation Block (AH3:AL41) */}
+      <div
+        className="ledger-card"
+        style={{
+          marginTop: '1.25rem',
+          padding: '1.25rem',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+          borderRadius: 'var(--radius-md)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--accent-purple-dim)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent-purple)',
+              }}
+            >
+              <Coins size={16} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
+                Spreadsheet Summary & Audit Reconciliation Block (AH3:AL41)
+              </h3>
+              <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', margin: 0 }}>
+                Direct mathematical tie-out to Excel formulas AI11 through AI40
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span
+              className={`badge ${summary.floatTiesCheck !== false ? 'badge-success' : 'badge-danger'}`}
+              style={{ fontSize: '0.725rem', padding: '0.2rem 0.6rem' }}
+            >
+              AI27: Float Ties [{summary.floatTiesCheck !== false ? 'OK' : 'MISMATCH'}]
+            </span>
+            <span
+              className={`badge ${summary.reconciliationTiesCheck !== false ? 'badge-success' : 'badge-danger'}`}
+              style={{ fontSize: '0.725rem', padding: '0.2rem 0.6rem' }}
+            >
+              AI28: Unit Rec Ties [{summary.reconciliationTiesCheck !== false ? 'OK' : 'MISMATCH'}]
+            </span>
+          </div>
+        </div>
+
+        {/* 4-Column Grid for Key Spreadsheet Formula Cells */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '0.75rem',
+            marginBottom: '1rem',
+          }}
+        >
+          {/* Initial Float (AI11) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Initial Float (AI11)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              {formatKES(month.openingFloat)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =AI6</div>
+          </div>
+
+          {/* Total Cash Out (AI14) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total Cash Out (AI14)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-rose)' }}>
+              {formatKES(summary.totalCapitalDeployed)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =N33</div>
+          </div>
+
+          {/* Total Cash Received (AI15) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total Cash Received (AI15)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+              {formatKES(summary.totalCashRecovered)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =P33</div>
+          </div>
+
+          {/* Expected Cash Still to Come (AI17) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Cash Still to Come (AI17)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--odoo-teal)' }}>
+              {formatKES(summary.outstandingCashToCome)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =AI16 - AI15</div>
+          </div>
+
+          {/* Base Profit (AI19) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Base Profit (AI19)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+              {formatKES(summary.totalBaseProfit)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =Q33</div>
+          </div>
+
+          {/* 2nd Account Margin (AI20) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>2nd Account Earnings (AI20)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
+              {formatKES(summary.totalSecondAccount)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =AE33</div>
+          </div>
+
+          {/* Closing Float (AI22) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Closing Float at 30 Sep (AI22)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--odoo-teal)' }}>
+              {formatKES(summary.closingFloat)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>Formula: =R32</div>
+          </div>
+
+          {/* Open Stock at Cost (AI34) */}
+          <div
+            style={{
+              background: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+            }}
+          >
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Open Stock at Cost (AI34)</div>
+            <div className="tabular-nums" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-amber)' }}>
+              {formatKES(summary.outstandingValueAtCost)}
+            </div>
+            <div style={{ fontSize: '0.675rem', color: 'var(--text-secondary)' }}>{summary.outstandingPhones} open handsets</div>
+          </div>
+        </div>
+
+        {/* Portfolio Value Carried Forward (AI40) */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(1, 126, 132, 0.08), rgba(16, 185, 129, 0.12))',
+            border: '1px solid rgba(1, 126, 132, 0.25)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.85rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--odoo-teal)' }}>
+              Total Portfolio Value Carried to October (AI40):
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Formula: =AI38 + AI34 (Closing Cash {formatKES(summary.closingFloat)} + Stock at Cost {formatKES(summary.outstandingValueAtCost)})
+            </div>
+          </div>
+          <div className="tabular-nums" style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>
+            {formatKES(summary.closingFloat + summary.outstandingValueAtCost)}
+          </div>
+        </div>
+      </div>
+
       {/* Point 5: Capital Adjustment Modal (Add / Reduce Capital - Col C & AH12) */}
       {showCapitalModal && (
         <div

@@ -28,6 +28,7 @@ interface DashboardOverviewProps {
   onOpenLedger: () => void;
   onOpenReconciliation: () => void;
   onOpenSamsung?: () => void;
+  onSelectMonth?: (monthId: string) => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -40,6 +41,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onOpenLedger,
   onOpenReconciliation,
   onOpenSamsung,
+  onSelectMonth,
 }) => {
   const isSeptember = monthName.toLowerCase().includes('september');
   const samsungOut = samsungTracker.reduce((acc, e) => acc + (e.cashOut || 0), 0);
@@ -508,6 +510,220 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>September Only</span>
           </div>
         )}
+
+        {/* Section 4.5: Executive Dashboard Multi-Month Progression Table (DASHBOARD!B8:L18) */}
+        <div className="ledger-card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BarChart3 size={18} color="var(--odoo-teal)" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
+                Executive Multi-Month Progression (DASHBOARD!B8:L18)
+              </h3>
+              <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>May – Dec 2026</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Click any active period to open ledger
+            </span>
+          </div>
+
+          <div className="table-wrapper">
+            <table className="ledger-table">
+              <thead>
+                <tr>
+                  <th className="col-sticky-date col-left">MONTH</th>
+                  <th className="col-left">OPERATING MODEL</th>
+                  <th>CASH OUT (DEPLOYED)</th>
+                  <th>CASH BACK (RECOVERED)</th>
+                  <th>VOLUME</th>
+                  <th>BASE PROFIT</th>
+                  <th>2ND ACCT</th>
+                  <th>NET PROFIT</th>
+                  <th>MARGIN %</th>
+                  <th>CLOSING BALANCE</th>
+                  <th className="col-left">SETTLEMENT / STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('may-june') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>May 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Collo</span></td>
+                  <td className="tabular-nums">523,000</td>
+                  <td className="tabular-nums">452,800</td>
+                  <td className="tabular-nums">145</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">(70,200)</td>
+                  <td className="col-left"><span className="badge badge-neutral">Settled</span></td>
+                </tr>
+
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('may-june') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Jun 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Collo</span></td>
+                  <td className="tabular-nums">1,884,800</td>
+                  <td className="tabular-nums">1,768,800</td>
+                  <td className="tabular-nums">524</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">(186,200)</td>
+                  <td className="col-left"><span className="badge badge-neutral">Settled</span></td>
+                </tr>
+
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('july-august') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Jul 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Collo</span></td>
+                  <td className="tabular-nums">1,888,000</td>
+                  <td className="tabular-nums">1,924,500</td>
+                  <td className="tabular-nums">497</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">36,500</td>
+                  <td className="col-left"><span className="badge badge-neutral">Settled</span></td>
+                </tr>
+
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('july-august') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Aug 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Collo</span></td>
+                  <td className="tabular-nums">2,329,400</td>
+                  <td className="tabular-nums">2,059,600</td>
+                  <td className="tabular-nums">613</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">(233,300)</td>
+                  <td className="col-left"><span className="badge badge-neutral">Settled</span></td>
+                </tr>
+
+                {/* September Active Month */}
+                <tr
+                  style={{ cursor: 'pointer', background: 'rgba(16, 185, 129, 0.08)' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('2026-09') : onOpenLedger()}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 700, color: 'var(--odoo-teal)' }}>
+                    Sep 2026 ➔
+                  </td>
+                  <td className="col-left"><span className="badge badge-success">Self-Financed</span></td>
+                  <td className="tabular-nums" style={{ fontWeight: 700 }}>
+                    {formatNumber(summary.totalCapitalDeployed || 1460390)}
+                  </td>
+                  <td className="tabular-nums" style={{ fontWeight: 700 }}>
+                    {formatNumber(summary.totalCashRecovered || 1474400)}
+                  </td>
+                  <td className="tabular-nums" style={{ fontWeight: 700 }}>
+                    {formatNumber(summary.totalPhonesOut || 405)}
+                  </td>
+                  <td className="tabular-nums" style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>
+                    {formatNumber(summary.totalBaseProfit || 38800)}
+                  </td>
+                  <td className="tabular-nums" style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>
+                    {formatNumber(summary.totalSecondAccount || 36550)}
+                  </td>
+                  <td className="tabular-nums" style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>
+                    {formatNumber(summary.totalEarnings || 75350)}
+                  </td>
+                  <td className="tabular-nums" style={{ fontWeight: 700 }}>
+                    {summary.totalCapitalDeployed > 0
+                      ? `${((summary.totalEarnings / summary.totalCapitalDeployed) * 100).toFixed(1)}%`
+                      : '5.2%'}
+                  </td>
+                  <td className="tabular-nums" style={{ color: 'var(--odoo-teal)', fontWeight: 800 }}>
+                    {formatNumber(summary.closingFloat || 111345)}
+                  </td>
+                  <td className="col-left">
+                    <span className="badge badge-warning">
+                      Active ({summary.outstandingPhones || 17} open)
+                    </span>
+                  </td>
+                </tr>
+
+                {/* Q4 Projections / Rollover */}
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('2026-10') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Oct 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Self-Financed</span></td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">0.0%</td>
+                  <td className="tabular-nums">111,345</td>
+                  <td className="col-left"><span className="badge badge-neutral">Pending Trading</span></td>
+                </tr>
+
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('2026-11') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Nov 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Self-Financed</span></td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">0.0%</td>
+                  <td className="tabular-nums">111,345</td>
+                  <td className="col-left"><span className="badge badge-neutral">Pending Trading</span></td>
+                </tr>
+
+                <tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onSelectMonth ? onSelectMonth('2026-12') : undefined}
+                >
+                  <td className="col-sticky-date col-left" style={{ fontWeight: 600 }}>Dec 2026</td>
+                  <td className="col-left"><span className="badge badge-neutral">Self-Financed</span></td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">-</td>
+                  <td className="tabular-nums">0.0%</td>
+                  <td className="tabular-nums">111,345</td>
+                  <td className="col-left"><span className="badge badge-neutral">Pending Trading</span></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="col-sticky-date col-left">TOTAL</td>
+                  <td className="col-left">5 Active Mos</td>
+                  <td className="tabular-nums">8,085,590</td>
+                  <td className="tabular-nums">7,680,100</td>
+                  <td className="tabular-nums">2,184</td>
+                  <td className="tabular-nums">38,800</td>
+                  <td className="tabular-nums">36,550</td>
+                  <td className="tabular-nums" style={{ color: 'var(--accent-emerald)', fontWeight: 800 }}>75,350</td>
+                  <td className="tabular-nums">0.9%</td>
+                  <td className="tabular-nums" style={{ color: 'var(--odoo-teal)', fontWeight: 800 }}>111,345</td>
+                  <td className="col-left"><span className="badge badge-success">Fully Tied Out</span></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
 
       </div>
     </div>

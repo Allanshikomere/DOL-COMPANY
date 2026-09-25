@@ -33,20 +33,32 @@ export const ReconciliationPanel: React.FC<ReconciliationPanelProps> = ({
   const samsungIn = samsungTracker.reduce((acc, e) => acc + (e.cashIn || 0), 0);
   const samsungPending = Math.max(0, samsungOut - samsungIn);
   const totalAssetsWithSamsung = summary.floatOnceReconciled + samsungPending;
-  const typeA = phoneTypes.find((p) => p.id === 'type-a') || {
+  const typeA: PhoneTypeConfig = phoneTypes.find((p) => p.id === 'type-a') || {
     id: 'type-a',
+    name: 'Type A',
+    model: '128GB',
     cost: 3700,
     returnCash: 3800,
+    baseProfit: 100,
+    secondAccountSpread: 0,
   };
-  const typeB = phoneTypes.find((p) => p.id === 'type-b') || {
+  const typeB: PhoneTypeConfig = phoneTypes.find((p) => p.id === 'type-b') || {
     id: 'type-b',
-    cost: 3570,
+    name: 'Type B',
+    model: '64GB',
+    cost: 3530,
     returnCash: 3800,
+    baseProfit: 100,
+    secondAccountSpread: 170,
   };
-  const typeC = phoneTypes.find((p) => p.id === 'type-c') || {
+  const typeC: PhoneTypeConfig = phoneTypes.find((p) => p.id === 'type-c') || {
     id: 'type-c',
+    name: 'Type C Pop 20',
+    model: 'Pop 20 64GB',
     cost: 3600,
     returnCash: 3700,
+    baseProfit: 100,
+    secondAccountSpread: 0,
   };
 
   const latestDay = calculatedDays[calculatedDays.length - 1];
@@ -191,7 +203,7 @@ export const ReconciliationPanel: React.FC<ReconciliationPanelProps> = ({
                   Cost: {formatKES(unrecB * typeB.cost)} ({formatKES(typeB.cost)}/ea)
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 600 }}>
-                  Return: {formatKES(unrecB * typeB.returnCash)} (incl. 130 spread)
+                  Return: {formatKES(unrecB * typeB.returnCash)} (incl. {typeB.secondAccountSpread ?? 170} spread)
                 </div>
               </div>
 
@@ -289,7 +301,7 @@ export const ReconciliationPanel: React.FC<ReconciliationPanelProps> = ({
             </div>
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              * When the remaining {summary.outstandingPhones} phones are returned, KES {formatNumber(summary.outstandingPhones * 100)} base profit is taken as earnings, and KES {formatNumber(unrecB * 130)} moves to the 2nd account, leaving your float completely whole at {formatKES(summary.floatOnceReconciled)}.
+              * When the remaining {summary.outstandingPhones} phones are returned, KES {formatNumber(summary.outstandingPhones * 100)} base profit is taken as earnings, and KES {formatNumber(unrecB * (typeB.secondAccountSpread ?? 170))} moves to the 2nd account, leaving your float completely whole at {formatKES(summary.floatOnceReconciled)}.
             </div>
           </div>
 

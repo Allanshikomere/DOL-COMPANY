@@ -206,7 +206,7 @@ export const AllMonthsView: React.FC<AllMonthsViewProps> = ({
           </div>
           <div className="alert-box success">
             <CheckCircle2 size={16} />
-            Float Restoration Bridge ties: KES 68,105 + 104,580 = KES 172,685 (OK)
+            Float Restoration Bridge ties: KES 111,345 + 61,340 = KES 172,685 (OK)
           </div>
         </div>
       </div>
